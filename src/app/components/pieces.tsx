@@ -26,13 +26,22 @@ const INITIAL_COLORS_STATE = [
     '#e5e537',
 ]
 
-const CORNERS = [
+const NEIGHBOURS = [
     [4, 1, 2, 3, 4],
     [0, 4, 5, 2, 0],
     [0, 1, 5, 3, 0],
     [0, 2, 5, 4, 0],
     [0, 3, 5, 1, 0],
     [2, 1, 4, 3, 2],
+]
+
+const EDGE_LETTERS = [
+    [1, 1, 1, 1],
+    [3, 5, 3, 3],
+    [7, 5, 1, 3],
+    [5, 5, 5, 3],
+    [1, 5, 7, 3],
+    [7, 7, 7, 7],
 ]
 
 const CORNERS_LETTERS = [
@@ -76,11 +85,23 @@ const CORNERS_LETTERS = [
 
 const EDGES = []
 
+enum GAME_STATE {
+    Guessing,
+    Incorrect,
+    Correct,
+}
+
 // This component manages the pieces gamemode
 export default function Pieces() {
+    // Game State Variables
+    const [state, setState] = useState<GAME_STATE>(GAME_STATE.Guessing)
+
     // Score & Config Variables
     const [score, setScore] = useState<number>(0)
     const [best, setBest] = useState<number>(0)
+
+    const [allowCorners, setAllowCorners] = useState<boolean>(true)
+    const [allowEdges, setAllowEdges] = useState<boolean>(true)
 
     // Piece Variables
     // true = Edge, false = Corner
@@ -88,7 +109,13 @@ export default function Pieces() {
     const [guessLetters, setGuessLetters] = useState<string[]>([])
     const [cornerFacesBaseIndex, setCornerFacesBaseIndex] = useState<number>(0)
     const [cornerFacesPairIndex, setCornerFacesPairIndex] = useState<number>(0)
-    const [cornerFaces, setCornerFaces] = useState<number[]>([0, 4, 1])
+    const [cornerFaces, setCornerFaces] = useState<[number, number, number]>([
+        0, 4, 1,
+    ])
+
+    const [edgeFacesBaseIndex, setEdgeFacesBaseIndex] = useState<number>(0)
+    const [edgeFacesPairIndex, setEdgeFacesPairIndex] = useState<number>(0)
+    const [edgeFaces, setEdgeFaces] = useState<[number, number]>([0, 4])
 
     // Letter & Colour Config Variables
     const [lettersState, setLettersState] = useState<string[][]>(
@@ -98,7 +125,17 @@ export default function Pieces() {
         useState<string[]>(INITIAL_COLORS_STATE)
 
     const changePiece = () => {
-        if (pieceType) {
+        // update piece type
+        const options: boolean[] = []
+        if (allowCorners) options.push(false)
+        if (allowEdges) options.push(true)
+        const _index = Math.floor(Math.random() * options.length)
+        const _pieceType: boolean = options.at(_index) ?? true
+
+        setPieceType(_pieceType)
+
+        // update piece
+        if (_pieceType) {
             changeEdge()
         } else {
             changeCorner()
@@ -109,9 +146,16 @@ export default function Pieces() {
         const randA = Math.floor(Math.random() * 6) // for random base; from 0 to 5
         const randB = Math.floor(Math.random() * 4) // for random following pair; from 0 to 3
 
-        const randomPair = CORNERS.at(randA)?.slice(randB, randB + 2)
+        const randomPair = NEIGHBOURS.at(randA)?.slice(randB, randB + 2) as [
+            number,
+            number
+        ]
         if (randomPair) {
-            const _cornerFaces = [randA].concat(randomPair)
+            const _cornerFaces = [randA].concat(randomPair) as [
+                number,
+                number,
+                number
+            ]
 
             if (_cornerFaces === cornerFaces) {
                 changeCorner()
@@ -123,11 +167,38 @@ export default function Pieces() {
         }
     }
 
-    const changeEdge = () => {}
+    const changeEdge = () => {
+        const randA = Math.floor(Math.random() * 6) // for random base; from 0 to 5
+        const randB = Math.floor(Math.random() * 4) // for random following face; from 0 to 3
+
+        const _edgeFaces = [randA, NEIGHBOURS.at(randA)?.at(randB)] as [
+            number,
+            number
+        ]
+
+        if (_edgeFaces === edgeFaces) {
+            changeEdge()
+        } else {
+            setEdgeFaces(_edgeFaces)
+            setEdgeFacesBaseIndex(randA)
+            setEdgeFacesPairIndex(randB)
+        }
+    }
 
     const getCorrectGuess = () => {
         if (pieceType) {
             // Edge
+            // default white, blue
+            const baseLetterIndex = [1, 3, 7, 5].at(edgeFacesPairIndex) // e.g. 0
+            const pairLetterIndex =
+                EDGE_LETTERS.at(edgeFacesBaseIndex)?.at(edgeFacesPairIndex) // e.g. 1
+            const letterIndices = [baseLetterIndex, pairLetterIndex]
+
+            const letters = letterIndices.map((letterIndex, i) =>
+                lettersState.at(edgeFaces.at(i) ?? 0)?.at(letterIndex ?? 0)
+            )
+
+            console.log(letters)
         } else {
             // Corner
             // default white, blue, orange corner as e.g.
@@ -139,9 +210,7 @@ export default function Pieces() {
             const letterIndices = [baseLetterIndex].concat(pairLetterIndices) // e.g. [0, 2, 0]
 
             const letters = letterIndices.map((letterIndex, i) =>
-                INITIAL_LETTERS_STATE.at(cornerFaces.at(i) ?? 0)?.at(
-                    letterIndex ?? 0
-                )
+                lettersState.at(cornerFaces.at(i) ?? 0)?.at(letterIndex ?? 0)
             )
 
             console.log(letters)
@@ -170,13 +239,39 @@ export default function Pieces() {
                     <div className="w-1 bg-white"></div>
                     <div className="w-full flex flex-col justify-between">
                         <div className="flex gap-6 items-center">
-                            <input type="checkbox" className="mx-4 scale-[3]" />
+                            {/* Corners Config Option */}
+                            <input
+                                onChange={(e) => {
+                                    const checked = e.currentTarget.checked
+                                    if (!checked && !allowEdges) {
+                                        e.preventDefault()
+                                        return
+                                    }
+                                    setAllowCorners(e.currentTarget.checked)
+                                }}
+                                checked={allowCorners}
+                                type="checkbox"
+                                className="mx-4 scale-[3]"
+                            />
                             <div className="text-white font-semibold text-[2rem]">
                                 Corners
                             </div>
                         </div>
                         <div className="flex gap-6 items-center">
-                            <input type="checkbox" className="mx-4 scale-[3]" />
+                            {/* Edges Config Option */}
+                            <input
+                                onChange={(e) => {
+                                    const checked = e.currentTarget.checked
+                                    if (!checked && !allowCorners) {
+                                        e.preventDefault()
+                                        return
+                                    }
+                                    setAllowEdges(e.currentTarget.checked)
+                                }}
+                                checked={allowEdges}
+                                type="checkbox"
+                                className="mx-4 scale-[3]"
+                            />
                             <div className="text-white font-semibold text-[2rem]">
                                 Edges
                             </div>
@@ -188,16 +283,20 @@ export default function Pieces() {
                     <div className="text-white font-semibold text-[3rem]">
                         Guess the letters!
                     </div>
-                    <div className="flex w-[40rem] items-center justify-center py-20">
+                    <div className="flex w-[40rem] items-center justify-center py-20 relative">
                         <div className="w-80 h-80">
                             {pieceType ? (
-                                <Edge colors={colorsState} />
+                                <Edge colors={colorsState} faces={edgeFaces} />
                             ) : (
                                 <Corner
                                     colors={colorsState}
                                     faces={cornerFaces}
                                 />
                             )}
+                        </div>
+                        {/* Correct */}
+                        <div className="absolute p-10 py-2 rounded-[2rem] bg-black/80 text-lime-400 text-[6rem]">
+                            Correct!
                         </div>
                     </div>
                 </div>
@@ -208,9 +307,10 @@ export default function Pieces() {
                     <ConfigureScheme
                         initialLettersState={INITIAL_LETTERS_STATE}
                         initialColorsState={INITIAL_COLORS_STATE}
-                        onLetterChange={(newLettersState: string[][]) =>
+                        onLetterChange={(newLettersState: string[][]) => {
+                            console.log(newLettersState)
                             setLettersState(newLettersState)
-                        }
+                        }}
                         onColorChange={(newColorsState: string[]) =>
                             setColorsState(newColorsState)
                         }
@@ -224,18 +324,48 @@ export default function Pieces() {
                 </div>
                 {/* Submit & Reveal */}
                 <div className="bg-[#222738] flex flex-col gap-6 h-full p-10 px-12 rounded-[2rem]">
-                    <button
-                        onClick={() => changePiece()}
-                        className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#077cfc]"
-                    >
-                        Submit
-                    </button>
-                    <button
-                        onClick={() => getCorrectGuess()}
-                        className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
-                    >
-                        Reveal
-                    </button>
+                    {state == GAME_STATE.Guessing && (
+                        <>
+                            <button
+                                onClick={() => changePiece()}
+                                className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#077cfc]"
+                            >
+                                Submit
+                            </button>
+                            <button
+                                onClick={() => getCorrectGuess()}
+                                className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
+                            >
+                                Reveal
+                            </button>
+                        </>
+                    )}
+                    {state == GAME_STATE.Incorrect && (
+                        <>
+                            <button
+                                onClick={() => setState(GAME_STATE.Guessing)}
+                                className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#077cfc]"
+                            >
+                                Try Again
+                            </button>
+                            <button
+                                onClick={() => changePiece()}
+                                className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
+                            >
+                                Next
+                            </button>
+                        </>
+                    )}
+                    {state == GAME_STATE.Incorrect && (
+                        <>
+                            <button
+                                onClick={() => changePiece()}
+                                className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
+                            >
+                                Next
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

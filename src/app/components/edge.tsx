@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react'
 
-export default function Edge(props: { colors: string[] }) {
+export default function Edge(props: {
+    colors: string[]
+    faces: [number, number]
+}) {
     const [colors, setColors] = useState<string[]>(props.colors)
-    const [faces, setFaces] = useState<number[]>([1, 2])
+    const [faces, setFaces] = useState<number[]>(props.faces)
 
     useEffect(() => {
         setColors(props.colors)
     }, [props.colors])
+
+    useEffect(() => {
+        setFaces(props.faces)
+    }, [props.faces])
 
     return (
         <div className="relative h-full">

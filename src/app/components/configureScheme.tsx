@@ -27,15 +27,15 @@ export default function ConfigureScheme(props: {
         letterIndex: number,
         newLetter: string
     ) => {
-        setLettersState((lettersState) =>
-            lettersState.map((face, f) =>
-                f === selectedFaceIndex
-                    ? face.map((letter, l) =>
-                          l === letterIndex ? newLetter : letter
-                      )
-                    : face
-            )
+        const _lettersState = lettersState.map((face, f) =>
+            f === selectedFaceIndex
+                ? face.map((letter, l) =>
+                      l === letterIndex ? newLetter : letter
+                  )
+                : face
         )
+        setLettersState(_lettersState)
+        props.onLetterChange(_lettersState)
     }
 
     // Colors state transformation

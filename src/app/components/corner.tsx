@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 
-export default function Corner(props: { colors: string[]; faces: number[] }) {
+export default function Corner(props: {
+    colors: string[]
+    faces: [number, number, number]
+}) {
     const [colors, setColors] = useState<string[]>(props.colors)
     const [faces, setFaces] = useState<number[]>(props.faces)
 
