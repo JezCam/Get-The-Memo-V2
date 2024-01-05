@@ -113,6 +113,8 @@ export default function Pieces() {
         0, 4, 1,
     ])
 
+    const [guess, setGuess] = useState<string[]>(['', '', ''])
+
     const [edgeFacesBaseIndex, setEdgeFacesBaseIndex] = useState<number>(0)
     const [edgeFacesPairIndex, setEdgeFacesPairIndex] = useState<number>(0)
     const [edgeFaces, setEdgeFaces] = useState<[number, number]>([0, 4])
@@ -185,7 +187,27 @@ export default function Pieces() {
         }
     }
 
-    const getCorrectGuess = () => {
+    const onSubmit = () => {
+        // Get the corect guess
+        const correctGuess = getCorrectGuess()
+        let currentGuess = [...guess]
+
+        if (pieceType) {
+            // Edge
+            currentGuess = [...guess].splice(0, 2)
+        }
+
+        // Update state accordingly
+        if (JSON.stringify(currentGuess) == JSON.stringify(correctGuess)) {
+            setState(GAME_STATE.Correct)
+        } else {
+            setState(GAME_STATE.Incorrect)
+        }
+    }
+
+    const getCorrectGuess = (): string[] => {
+        let letters: string[]
+
         if (pieceType) {
             // Edge
             // default white, blue
@@ -194,27 +216,28 @@ export default function Pieces() {
                 EDGE_LETTERS.at(edgeFacesBaseIndex)?.at(edgeFacesPairIndex) // e.g. 1
             const letterIndices = [baseLetterIndex, pairLetterIndex]
 
-            const letters = letterIndices.map((letterIndex, i) =>
-                lettersState.at(edgeFaces.at(i) ?? 0)?.at(letterIndex ?? 0)
+            letters = letterIndices.map(
+                (letterIndex, i) =>
+                    lettersState[edgeFaces[i] ?? 0][letterIndex ?? 0]
             )
-
-            console.log(letters)
         } else {
             // Corner
             // default white, blue, orange corner as e.g.
-            const baseLetterIndex = [0, 6, 8, 2].at(cornerFacesPairIndex) // e.g. 0
-            const pairLetterIndices =
-                CORNERS_LETTERS.at(cornerFacesBaseIndex)?.at(
-                    cornerFacesPairIndex
-                ) // e.g. [2, 0]
+            const baseLetterIndex = [0, 6, 8, 2].at(
+                cornerFacesPairIndex
+            ) as number // e.g. 0
+            const pairLetterIndices = CORNERS_LETTERS.at(
+                cornerFacesBaseIndex
+            )?.at(cornerFacesPairIndex) as number[] // e.g. [2, 0]
             const letterIndices = [baseLetterIndex].concat(pairLetterIndices) // e.g. [0, 2, 0]
 
-            const letters = letterIndices.map((letterIndex, i) =>
-                lettersState.at(cornerFaces.at(i) ?? 0)?.at(letterIndex ?? 0)
+            letters = letterIndices.map(
+                (letterIndex, i) =>
+                    lettersState[cornerFaces.at(i) ?? 0][letterIndex ?? 0]
             )
-
-            console.log(letters)
         }
+
+        return letters
     }
 
     return (
@@ -286,18 +309,39 @@ export default function Pieces() {
                     <div className="flex w-[40rem] items-center justify-center py-20 relative">
                         <div className="w-80 h-80">
                             {pieceType ? (
-                                <Edge colors={colorsState} faces={edgeFaces} />
+                                <Edge
+                                    onChange={(index, letter) => {
+                                        const _guess = [...guess]
+                                        _guess[index] = letter
+                                        setGuess(_guess)
+                                    }}
+                                    guess={guess.slice(0, 2)}
+                                    colors={colorsState}
+                                    faces={edgeFaces}
+                                />
                             ) : (
                                 <Corner
+                                    onChange={(index, letter) => {
+                                        const _guess = guess
+                                        _guess[index] = letter
+                                        setGuess(_guess)
+                                    }}
                                     colors={colorsState}
                                     faces={cornerFaces}
                                 />
                             )}
                         </div>
                         {/* Correct */}
-                        <div className="absolute p-10 py-2 rounded-[2rem] bg-black/80 text-lime-400 text-[6rem]">
-                            Correct!
-                        </div>
+                        {state === GAME_STATE.Correct && (
+                            <div className="absolute p-10 py-2 rounded-[2rem] bg-black/80 text-lime-400 text-[6rem]">
+                                Correct!
+                            </div>
+                        )}
+                        {state === GAME_STATE.Incorrect && (
+                            <div className="absolute p-10 py-2 rounded-[2rem] bg-black/80 text-red-400 text-[6rem]">
+                                Incorrect!
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -327,13 +371,13 @@ export default function Pieces() {
                     {state == GAME_STATE.Guessing && (
                         <>
                             <button
-                                onClick={() => changePiece()}
+                                onClick={onSubmit}
                                 className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#077cfc]"
                             >
                                 Submit
                             </button>
                             <button
-                                onClick={() => getCorrectGuess()}
+                                onClick={getCorrectGuess}
                                 className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
                             >
                                 Reveal
@@ -349,17 +393,25 @@ export default function Pieces() {
                                 Try Again
                             </button>
                             <button
-                                onClick={() => changePiece()}
+                                onClick={() => {
+                                    changePiece()
+                                    setState(GAME_STATE.Guessing)
+                                    setGuess(['', '', ''])
+                                }}
                                 className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
                             >
                                 Next
                             </button>
                         </>
                     )}
-                    {state == GAME_STATE.Incorrect && (
+                    {state == GAME_STATE.Correct && (
                         <>
                             <button
-                                onClick={() => changePiece()}
+                                onClick={() => {
+                                    changePiece()
+                                    setState(GAME_STATE.Guessing)
+                                    setGuess(['', '', ''])
+                                }}
                                 className="hover:scale-105 transition-transform h-full border-[5px] rounded-[1rem] p-2 font-semibold text-white text-[2rem] border-white bg-[#ef402f]"
                             >
                                 Next

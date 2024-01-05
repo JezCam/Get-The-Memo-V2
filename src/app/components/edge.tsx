@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 
 export default function Edge(props: {
+    onChange: (index: number, guess: string) => void
+    guess: string[]
     colors: string[]
     faces: [number, number]
 }) {
     const [colors, setColors] = useState<string[]>(props.colors)
     const [faces, setFaces] = useState<number[]>(props.faces)
+    const [guess, setGuess] = useState<string[]>(props.guess)
 
     useEffect(() => {
         setColors(props.colors)
@@ -15,15 +18,23 @@ export default function Edge(props: {
         setFaces(props.faces)
     }, [props.faces])
 
+    useEffect(() => {
+        setGuess(props.guess)
+    }, [props.guess])
+
     return (
         <div className="relative h-full">
             {/* Input 1 - left */}
             <input
+                value={guess[0]}
+                onChange={(e) => props.onChange(0, e.currentTarget.value)}
                 maxLength={1}
                 className="absolute top-[33%] left-[13%] text-white border-[2px] border-white font-medium bg-black/40 h-20 w-20 rounded-md text-center text-[4rem]"
             ></input>
             {/* Input 2 - right */}
             <input
+                value={guess[1]}
+                onChange={(e) => props.onChange(1, e.currentTarget.value)}
                 maxLength={1}
                 className="absolute top-[33%] right-[13%] text-white border-[2px] border-white font-medium bg-black/40 h-20 w-20 rounded-md text-center text-[4rem]"
             ></input>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 export default function Corner(props: {
+    onChange: (index: number, guess: string) => void
     colors: string[]
     faces: [number, number, number]
 }) {
@@ -19,16 +20,19 @@ export default function Corner(props: {
         <div className="relative w-full h-full">
             {/* Input 1 - left */}
             <input
+                onChange={(e) => props.onChange(0, e.currentTarget.value)}
                 maxLength={1}
                 className="absolute top-[29%] left-[13%] text-white border-[2px] border-white font-medium bg-black/40 h-20 w-20 rounded-md text-center text-[4rem]"
             ></input>
             {/* Input 2 - right */}
             <input
+                onChange={(e) => props.onChange(1, e.currentTarget.value)}
                 maxLength={1}
                 className="absolute top-[29%] right-[13%] text-white border-[2px] border-white font-medium bg-black/40 h-20 w-20 rounded-md text-center text-[4rem]"
             ></input>
             {/* Input 3 - bottom */}
             <input
+                onChange={(e) => props.onChange(2, e.currentTarget.value)}
                 maxLength={1}
                 className="absolute top-[70%] left-[50%] translate-x-[-50%] text-white border-[2px] border-white font-medium bg-black/40 h-20 w-20 rounded-md text-center text-[4rem]"
             ></input>
